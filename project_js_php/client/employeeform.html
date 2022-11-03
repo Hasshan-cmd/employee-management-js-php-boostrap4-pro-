@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
+        <style>
+            body {
+                padding-top: 10px;
+                padding-bottom: 10px;
+            }
+            /* width */
+            ::-webkit-scrollbar {
+                width: 10px;
+            }
+
+            /* Track */
+            ::-webkit-scrollbar-track {
+                background: #f1f1f1;
+            }
+
+            /* Handle */
+            ::-webkit-scrollbar-thumb {
+                background: #888;
+            }
+
+            /* Handle on hover */
+            ::-webkit-scrollbar-thumb:hover {
+                background: #555;
+            }
+        </style>
+        <title>Employee Table</title>
+        <script>
+            function Employee(id, name, age, nic, gender) {
+                this.id,
+                this.name,
+                this.age,
+                this.nic,
+                this.gender;
+            }
+
+            window.addEventListener("load", initialize);
+
+            var ajax;
+            var employees;
+            var genders;
+
+            var Valid = "lightgreen";
+            var Invalid = "pink";
+            var Initial = "white";
+            var InitialTable = "#343a40";
+            var Update = "khaki";
+            var Select = "skyblue";
+
+            let nameValidation = false;
+            let ageValidation = false;
+            let nicValidation = false;
+            let genderValidation = false;
+
+            let oldEmployee = null;
+            let employee = null;
+
+            let baseUrl = "http://127.0.0.1/7_24_2_js_php/server/";
+
+            function initialize() {
+                btnClear.addEventListener("click", function () {
+                    let userConfirm = window.confirm("Are you sure you want to clear this form?");
+                    if (userConfirm) {
+                        clearForm();
+                    }
+                });
+                btnSearch.addEventListener("click", btnSearchMC);
+                btnAdd.addEventListener("click", btnAddMC);
+                btnDelete.addEventListener("click", btnDeleteMC);
+                btnUpdate.addEventListener("click", btnUpdateMC);
+                btnSearchClear.addEventListener("click", btnSearchClearMC);
+                txtName.addEventListener("keyup", txtNameKU);
+                txtAge.addEventListener("keyup", txtAgeKU);
+                txtNic.addEventListener("keyup", txtNicKU);
+                cmbGender.addEventListener("change", cmbGenderCH);
+
+                btnUpdate.setAttribute("disabled", "disabled");
+                btnDelete.setAttribute("disabled", "disabled");
+
+                genders = get(baseUrl+"genders");
+                employees = get(baseUrl+"employees");
+
+                loadView();
+            }
+
+            function loadView() {
+                fillTable(employees, tblMain, ["id", "name", "age", "nic", function (e) {
+                    return e.gender.name;
+                }]);
+                fillCombo(genders, cmbGender, "name", "Select Gender");
+                fillCombo(genders, cmbSearchGender, "name", "Select Gender");
+            }
+
+            function txtNameKU() {
+                let name = txtName.value;
+                let namePattern = new RegExp("^[a-zA-Z]{4,}(?: [a-zA-Z]+){0,2}$");
+                if (!namePattern.test(name)) {
+                    txtName.style.backgroundColor = Invalid;
+                    nameValidation = false;
+                } else {
+                    if (oldEmployee && oldEmployee.name != name) {
+                        txtName.style.backgroundColor = Update;
+                        ageValidation = true;
+                    } else {
+                        txtName.style.backgroundColor = Valid;
+                        nameValidation = true;
+                    }
+                }
+            }
+
+            function txtAgeKU() {
+                let age = txtAge.value;
+                let agePattern = new RegExp("^([1-1][8-9]|[2-4][0-9]|50)$");
+                if (!agePattern.test(age)) {
+                    txtAge.style.backgroundColor = Invalid;
+                    ageValidation = false;
+                } else {
+                    if (oldEmployee && oldEmployee.age != age) {
+                        txtAge.style.backgroundColor = Update;
+                        ageValidation = true;
+                    } else {
+                        txtAge.style.backgroundColor = Valid;
+                        ageValidation = true;
+                    }
+                }
+            }
+
+            function txtNicKU() {
+                let nic = txtNic.value;
+                let nicPattern = new RegExp("^(([0-9]{12})|([0-9]{9}[vVxX]))$");
+                if (!nicPattern.test(nic)) {
+                    txtNic.style.backgroundColor = Invalid;
+                    nicValidation = false;
+                } else {
+                    if (oldEmployee && oldEmployee.nic != nic) {
+                        txtNic.style.backgroundColor = Update;
+                        nicValidation = true;
+                    } else {
+                        txtNic.style.backgroundColor = Valid;
+                        nicValidation = true;
+                    }
+                }
+            }
+
+            function cmbGenderCH() {
+                let gender = JSON.parse(cmbGender.value);
+
+                if (gender == null) {
+                    cmbGender.style.backgroundColor = Invalid;
+                    genderValidation = false;
+                } else {
+                    if (oldEmployee && oldEmployee.gender != gender) {
+                        cmbGender.style.backgroundColor = Update;
+                        genderValidation = true;
+                    } else {
+                        cmbGender.style.backgroundColor = Valid;
+                        genderValidation = true;
+                    }
+                }
+            }
+
+            function getErrors() {
+                let errors = "";
+                if (!nameValidation) errors += "\nInvalid name";
+                if (!ageValidation) errors += "\nInvalid age";
+                if (!nicValidation) errors += "\nInvalid nic";
+                if (!genderValidation) errors += "\nInvalid gender";
+
+                return errors;
+            }
+
+            function btnAddMC() {
+                let errors = getErrors();
+
+                if (errors != "") {
+                    window.alert("You have fallowing errors\n" + errors);
+                } else {
+                    employee = new Employee();
+                    employee.name = txtName.value;
+                    employee.age = txtAge.value;
+                    employee.nic = txtNic.value;
+                    employee.gender = JSON.parse(cmbGender.value);
+
+                    let userConfirm = window.confirm("Are you sure you want to Add this record?\n"+employee.name + "\n" + employee.age + "\n" + employee.nic + "\n" + employee.gender.name);
+                    if (userConfirm) {
+                        let result = post(baseUrl+"employees",JSON.stringify(employee));
+                        if(result != ""){
+                            window.alert(result);
+                        }else {
+                            window.alert("Success");
+                            clearForm();
+                            employees = get(baseUrl+"employees");
+                            fillTable(employees, tblMain, ["id", "name", "age", "nic", function (e) {
+                                return e.gender.name;
+                            }]);
+                        }
+                    }
+                }
+            }
+
+            function btnDeleteMC(){
+                let userConfirm = window.confirm("Are you sure to Delete this record " + oldEmployee.name + "?");
+                if (userConfirm) {
+                    let result = del(baseUrl+"employees/"+oldEmployee.id);
+                    if(result != ""){
+                        window.alert(result);
+                    }else {
+                        window.alert("Success");
+                        clearForm();
+                        employees = get(baseUrl+"employees");
+                        fillTable(employees, tblMain, ["id", "name", "age", "nic", function (e) {
+                            return e.gender.name;
+                        }]);
+                    }
+                }
+            }
+
+            function getUpdates() {
+                let updates = "";
+                if (oldEmployee != null) {
+                    if (oldEmployee.name != employee.name) updates += "Name Updated \n";
+                    if (oldEmployee.age != employee.age) updates += "Age Updated \n";
+                    if (oldEmployee.nic != employee.nic) updates += "NIC Updated \n";
+                    if (oldEmployee.gender.id != employee.gender.id) updates += "Gender Updated \n";
+                }
+                return updates;
+            }
+
+            function btnUpdateMC(){
+                employee = new Employee();
+                employee.id = oldEmployee.id;
+                employee.name = txtName.value;
+                employee.age = txtAge.value;
+                employee.nic = txtNic.value;
+                employee.gender = JSON.parse(cmbGender.value);
+
+                let updates = getUpdates();
+
+                if (updates == "") {
+                    alert("Nothing to update");
+                }else {
+                    let userConfirm = window.confirm("Are you sure to Update this record? \n" + updates);
+                    if (userConfirm) {
+                        let result = put(baseUrl+"employees/"+oldEmployee.id, JSON.stringify(employee));
+                        if(result != ""){
+                            window.alert(result);
+                        }else {
+                            window.alert("Success");
+                            clearForm();
+                            employees = get(baseUrl+"employees");
+                            fillTable(employees, tblMain, ["id", "name", "age", "nic", function (e) {
+                                return e.gender.name;
+                            }]);
+                        }
+                    }
+                }
+            }
+
+            function post(url, data) {
+                var http = new XMLHttpRequest();
+                http.open('POST', url, false);
+                http.setRequestHeader('Content-Type', 'application/json');
+                http.send(data);
+                if (http.status === 200) {
+                    return http.responseText;
+                }
+                return null;
+            }
+
+            function get(url) {
+                var http = new XMLHttpRequest();
+                http.open('GET', url, false);
+                http.send();
+                if (http.status === 200) {
+                    return JSON.parse(http.responseText);
+                }
+                return null;
+            }
+
+            function put(url, data) {
+                var http = new XMLHttpRequest();
+                http.open('PUT', url, false);
+                http.setRequestHeader('Content-Type', 'application/json');
+                http.send(data);
+                if (http.status === 200) {
+                    return http.responseText;
+                }
+                return null;
+            }
+
+            function del(url) {
+                var http = new XMLHttpRequest();
+                http.open('DELETE', url, false);
+                http.send();
+                if (http.status === 200) {
+                    return http.responseText;
+                }
+                return null;
+            }
+
+            function btnSearchMC() {
+                let name = txtSearchName.value;
+                let gender = JSON.parse(cmbSearchGender.value);
+                let query = "";
+                if (name != "") query += "name=" + name;
+                if (gender != null) {
+                    if (name != "") {
+                        query += "&gender=" + gender.id;
+                    } else {
+                        query += "gender=" + gender.id;
+                    }
+                }
+                employees = get(baseUrl+"employees?" + query);
+                fillTable(employees, tblMain, ["id", "name", "age", "nic", function (e) {
+                    return e.gender.name;
+                }]);
+            }
+
+            function btnSearchClearMC() {
+                txtSearchName.value = '';
+                cmbSearchGender.value = null;
+                employees = get(baseUrl+"employees?");
+                fillTable(employees, tblMain, ["id", "name", "age", "nic", function (e) {
+                    return e.gender.name;
+                }]);
+            }
+
+            function fillTable(data, table, props) {
+                table.children[1].innerHTML = "";
+                for (let i = 0; i < data.length; i++) {
+                    let tr = document.createElement("tr");
+                    tr.setAttribute("id", i);
+                    for (let j = 0; j < props.length; j++) {
+                        let txt = document.createTextNode(typeof props[j] == "function" ? props[j](data[i]) : data[i][props[j]]);
+                        let td = document.createElement("td");
+                        td.appendChild(txt);
+                        tr.appendChild(td);
+                    }
+
+                    let button = document.createElement("input");
+                    button.type = "button";
+                    button.value = "Modify";
+                    button.setAttribute("class", "btn btn-info");
+                    button.addEventListener("click", function () {
+                        let userConfirm = window.confirm("Are you sure you want to modify this record " + data[i].name + "?");
+                        if (userConfirm) {
+                            txtName.value = data[i].name;
+                            txtAge.value = data[i].age;
+                            txtNic.value = data[i].nic;
+                            cmbGender.value = JSON.stringify(data[i].gender);
+
+                            txtName.style.backgroundColor = Valid;
+                            txtAge.style.backgroundColor = Valid;
+                            txtNic.style.backgroundColor = Valid;
+                            cmbGender.style.backgroundColor = Valid;
+
+                            btnAdd.setAttribute("disabled", "disabled");
+                            btnUpdate.removeAttribute("disabled");
+                            btnDelete.removeAttribute("disabled");
+
+                            clearTableSelection();
+
+                            this.parentNode.parentNode.style.backgroundColor = Select;
+
+                            oldEmployee = data[i];
+                        }
+                    })
+                    let td = document.createElement("td");
+                    td.appendChild(button);
+                    tr.appendChild(td);
+
+                    table.children[1].appendChild(tr);
+                }
+            }
+
+            function clearTableSelection() {
+                let trList = tblMain.children[1].children;
+                for (let i = 0; i < trList.length; i++) {
+                    trList[i].style.backgroundColor = InitialTable;
+                }
+            }
+
+            function fillCombo(data, cmb, text, hint) {
+
+                let option = document.createElement("option");
+                option.innerHTML = hint;
+                option.value = null;
+                option.setAttribute("selected", "selected");
+                option.setAttribute("disabled", "disabled");
+
+                cmb.appendChild(option);
+
+                for (var i = 0; i < data.length; i++) {
+                    const datum = data[i];
+
+                    let option = document.createElement("option");
+                    option.innerHTML = datum[text];
+                    option.value = JSON.stringify(datum);
+
+                    cmb.appendChild(option);
+                }
+            }
+
+            function clearForm() {
+                txtName.value = "";
+                txtAge.value = "";
+                txtNic.value = "";
+                cmbGender.value = null;
+
+                btnUpdate.setAttribute("disabled", "disabled");
+                btnAdd.removeAttribute("disabled");
+                btnDelete.setAttribute("disabled", "disabled");
+
+                txtName.style.backgroundColor = Initial;
+                txtAge.style.backgroundColor = Initial;
+                txtNic.style.backgroundColor = Initial;
+                cmbGender.style.backgroundColor = Initial;
+
+                oldEmployee = null;
+
+                clearTableSelection();
+            }
+        </script>
+    </head>
+    <body class="bg-dark">
+        <div class="container-fluid">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Employee Details Manager</h3>
+                </div>
+                <div class="card-body card bg-dark text-white">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="card">
+                                <div class="card-header text-dark">
+                                    <h3 class="card-title">Employee Form</h3>
+                                </div>
+                                <div class="card-body card bg-dark text-white">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <form class="form-horizontal col-md-10" onsubmit="return false">
+                                                <div class="form-group">
+                                                    <label for="txtName">Name:</label>
+                                                    <input type="text" class="form-control" placeholder="Enter Name" id="txtName" name="name">
+                                                </div>
+                                            </form>
+                                            <form class="form-horizontal col-md-10" onsubmit="return false">
+                                                <div class="form-group">
+                                                    <label for="txtAge">Age:</label>
+                                                    <input type="text" class="form-control" placeholder="Enter Age" id="txtAge" name="age">
+                                                </div>
+                                            </form>
+                                            <form class="form-horizontal col-md-10" onsubmit="return false">
+                                                <div class="form-group">
+                                                    <label for="txtNic">NIC Number:</label>
+                                                    <input type="text" class="form-control" placeholder="Enter NIC" id="txtNic" name="nic">
+                                                </div>
+                                            </form>
+                                            <form class="form-horizontal col-md-10" onsubmit="return false">
+                                                <div class="form-group">
+                                                    <label for="cmbGender">Gender:</label>
+                                                    <select id="cmbGender" class="form-control"></select>
+                                                </div>
+                                            </form>
+                                            <br><br>
+                                            <div class="text-right">
+                                                <button class="btn btn-danger" id="btnDelete">Delete</button>
+                                                <button class="btn btn-info text-white" id="btnUpdate">Update</button>
+                                                <button class="btn btn-warning text-white" id="btnClear">Clear</button>
+                                                <button class="btn btn-success" id="btnAdd">Add</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-8">
+                            <div class="card">
+                                <div class="card-header text-dark">
+                                    <h3 class="card-title">Employee View</h3>
+                                </div>
+                                <div class="card-body card bg-dark text-white">
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <form class="form-inline" onsubmit="return false">
+                                                <div class="form-group">
+                                                    <label for="txtSearchName">Name:</label>
+                                                    &nbsp;&nbsp;
+                                                    <input type="text" class="form-control" placeholder="Search Name" id="txtSearchName" name="name">
+                                                </div>
+                                                &nbsp;&nbsp;
+                                                <div class="form-group">
+                                                    <label for="cmbSearchGender">Gender:</label>
+                                                    &nbsp;&nbsp;
+                                                    <select id="cmbSearchGender" class="form-control"></select>
+                                                </div>
+                                                &nbsp;&nbsp;&nbsp;&nbsp;
+                                                <div>
+                                                    <button class="btn btn-success" id="btnSearch">Search</button>
+                                                    <button class="btn btn-warning text-white" id="btnSearchClear">Clear Search</button>
+                                                </div>
+                                            </form>
+                                            <br><br>
+                                            <div class="col-md-12 table-responsive">
+                                                <table class="table table-hover table-dark"  id="tblMain">
+                                                    <thead>
+                                                    <tr>
+                                                        <th>Id</th>
+                                                        <th>Name</th>
+                                                        <th>Age</th>
+                                                        <th>NIC Number</th>
+                                                        <th>Gender</th>
+                                                        <th></th>
+                                                    </tr>
+                                                    </thead>
+                                                    <tbody></tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>
